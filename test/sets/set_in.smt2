@@ -1,0 +1,5 @@
+(declare-const i1 Int)
+(assert (and (and (and (and (and (and (and (or (or (or (or (and true false)(and true false))(and true true))(and false true))(and false true))(and true true))(or (not false)true))(or (not false)true))(or (not false)true))(or (not true)true))(or (not false)true))(or (not false)true)))
+(assert (and (and (and (and (and (and (and (or (or (or (or (and true false)(and true false))(and false true))(and false true))(and false true))(and true true))(or (not false)true))(or (not false)true))(or (not false)true))(or (not false)true))(or (not false)true))(or (not false)true)))
+(check-sat)
+(get-objectives)

@@ -1,0 +1,5 @@
+var int:i1;
+set of int: s1 = {1,2,4,7,9,13};
+
+constraint set_card(s1,i1);
+solve maximize i1;

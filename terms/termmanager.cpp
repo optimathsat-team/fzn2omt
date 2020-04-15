@@ -275,19 +275,14 @@ Term TermManager::make_leq(Term t1, Term t2)
     if(is_number(t1->get_symbol()) && is_number(t2->get_symbol())){
         std::string t1_name(t1->get_symbol()->to_str());
         std::string t2_name(t2->get_symbol()->to_str());
-        if(atof(t1_name.c_str())<=atof(t2_name.c_str()))
-            return true_term_;
-        else
-            return false_term_;
-    }else{
         if(tp1 == get_integer_type() && tp1 == tp2){
-            leq = leq_int_;
-        }
-        else{
-            leq = leq_rat_;
+            if(atoi(t1_name.c_str())<=atoi(t2_name.c_str()))
+                return true_term_;
+            else
+                return false_term_;
         } 
-    }
-    
+    }  
+    leq = leq_rat_;
     return make_term(leq, children);
 
 }

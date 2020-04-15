@@ -1,0 +1,8 @@
+var int:i1;
+set of int: s1 = {1,2,4,7,9,13};
+set of int: s2 = {3,5,6,2};
+var set of 1..20: s3;
+
+constraint set_diff(s1,s2,s3);
+constraint set_card(s3,i1);
+solve maximize i1;

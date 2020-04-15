@@ -1,0 +1,6 @@
+array [1..4] of int: ai1 = [5,1,3,8];
+var int:i1; 
+
+constraint optimathsat_array_int_maximum(i1,ai1);
+
+solve maximize i1;

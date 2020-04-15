@@ -1,0 +1,14 @@
+array [1..4] of float: f1 = [9.5,6.4,5.7,1.7];
+array [1..4] of float: f2 = [8.2,5.3,2.7,3.4];
+array [1..4] of var float: f3;
+
+% sat
+constraint optimathsat_decreasing_float(f1);
+
+% unsat
+constraint optimathsat_decreasing_float(f2);
+
+% general
+constraint optimathsat_decreasing_float(f3);
+
+solve satisfy;

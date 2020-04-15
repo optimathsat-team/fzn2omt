@@ -1,0 +1,5 @@
+(declare-const i1 Int)
+(assert (and (and (and (and (and true (<= 5 i1))(<= 1 i1))(<= 3 i1))(<= 8 i1))(or (or (or (or false (<= i1 5))(<= i1 1))(<= i1 3))(<= i1 8))))
+(maximize i1)
+(check-sat)
+(get-objectives)
