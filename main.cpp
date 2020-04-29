@@ -13,9 +13,10 @@ using namespace std;
 
 int main(int argc, char* argv[]){
 	int c;
+  bool bv = false;
 	std::ofstream output;
 	std::ifstream input;
-	while ((c = getopt (argc, argv, "hi:o:")) != -1)
+	while ((c = getopt (argc, argv, "hi:o:b")) != -1)
     switch (c)
       {
       case 'o':{
@@ -28,11 +29,16 @@ int main(int argc, char* argv[]){
         std::cin.rdbuf(input.rdbuf());
         break;
       }
+      case 'b':{
+        bv = true;
+        break;
+      }
       case 'h':{
-        std::cout<<"Usage: ./fzn2omt < INPUTFILE.fzn > OUTPUTFILE.smt2"<<std::endl<<std::endl;
+        std::cout<<"Usage: ./fzn2omt < INPUTFILE.fzn > OUTPUTFILE.smt2 [-b]"<<std::endl<<std::endl;
         std::cout<<"Alternatively you can pass files as command option arguments:"<<std::endl;
         std::cout<<"-i INPUTFILE.fzn"<<std::endl;
-        std::cout<<"-o OUTPUTFILE.smt2"<<std::endl;
+        std::cout<<"-o OUTPUTFILE.smt2"<<std::endl<<std::endl;
+        std::cout<<"-b can be used to represent Integers using BitVectors.";
         return 1;
       }
       case '?':
@@ -40,9 +46,9 @@ int main(int argc, char* argv[]){
       default:
         abort ();
       }
-	msat::CmdLine cmd;
-	msat::Configuration conf;
-	msat::opt::FlatZincInterface *toplevel = new msat::opt::FlatZincInterface(&conf, &cmd);
+	msat::CmdLine cmd(bv);
+	msat::Configuration conf(bv);
+	msat::opt::FlatZincInterface *toplevel = new msat::opt::FlatZincInterface(&conf, &cmd, bv);
 	toplevel->main_loop(std::cin);
 
 	return 0;

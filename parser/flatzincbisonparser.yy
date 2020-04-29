@@ -182,6 +182,8 @@ inline Number number_from_str(const char *str);
 %token TK_INT_LIN_EQ_REIF         "int_lin_eq_reif"
 %token TK_INT_LIN_LE              "int_lin_le"
 %token TK_INT_LIN_LE_REIF         "int_lin_le_reif"
+%token TK_INT_LIN_LT              "int_lin_lt"
+%token TK_INT_LIN_LT_REIF         "int_lin_lt_reif"
 %token TK_INT_LIN_NE              "int_lin_ne"
 %token TK_INT_LIN_NE_REIF         "int_lin_ne_reif"
 %token TK_INT_LT                  "int_lt"

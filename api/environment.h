@@ -12,7 +12,7 @@ namespace msat {
 
 class Environment {
 public:
-    void assert_formula_ric(Term formula, bool last);
+    void assert_formula_ric(Term formula, bool last, bool isreal);
     void assert_formula(Term term);
 
     Environment(Configuration *config, bool api_trace = true);
@@ -82,6 +82,7 @@ protected:
 
     bool owns_mgr_;
     status last_check_status_;
+    bool bv_;
     ///< true if this environment is the owner of the TermManager
 };
 

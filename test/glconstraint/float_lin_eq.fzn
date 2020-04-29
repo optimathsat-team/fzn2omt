@@ -1,5 +1,5 @@
 array [1..4] of var float: af1;
-var float:f1;
+var float:f1 :: output_var;
 
 constraint float_lin_eq([1.0,2.0,3.0], af1, 10.0);
 constraint float_eq(af1[2],1.0);

@@ -156,6 +156,7 @@ public:
     virtual void int_lin_ne_reif(TermList &as, TermList &bs, Term c, Term r) = 0;
     virtual void int_lt(Term a, Term b) = 0;
     virtual void int_lt_reif(Term a, Term b, Term r) = 0;
+
     virtual void int_max(Term a, Term b, Term c) = 0;
     virtual void int_min(Term a, Term b, Term c) = 0;
     virtual void int_mod(Term a, Term b, Term c) = 0;

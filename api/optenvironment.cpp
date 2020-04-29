@@ -63,13 +63,9 @@ OptSearch *OptEnvironment::make_minimize(
         Term term, Term lower, Term upper,
         const std::string &id, bool bvsigned, bool strict)
 {
+    assert(term);
     std::cout<<"(minimize "<<term->get_symbol()->get_name();
-    if(lower)
-        std::cout<<" :lower "<<lower->get_symbol()->get_name();
-    if(upper)
-        std::cout<<" :upper "<<upper->get_symbol()->get_name();
-    std::cout<<")"<<std::endl;
-    
+    std::cout<<" :signed)"<<std::endl;
     return NULL;
 }
 
@@ -79,13 +75,8 @@ OptSearch *OptEnvironment::make_maximize(
 {
     
     assert(term);
-        std::cout<<"(maximize "<<term->get_symbol()->get_name();
-    if(lower)
-        std::cout<<" :lower "<<lower->get_symbol()->get_name();
-    if(upper)
-        std::cout<<" :upper "<<upper->get_symbol()->get_name();
-    std::cout<<")"<<std::endl;
-
+    std::cout<<"(maximize "<<term->get_symbol()->get_name();
+    std::cout<<" :signed)"<<std::endl;
     return NULL;
     
 }
@@ -95,18 +86,15 @@ Term OptEnvironment::make_circuit(
         TermList &weights,
         Term id){
     PBManager sum(mgr_, this, id);
-
     if (clauses.size() != weights.size()) {
         throw Exception("there must be the same number of clauses and weights");
     }
     for (size_t i = 0; i < clauses.size(); i++) {
         sum.assert_soft_formula(clauses[i], weights[i]);
     }
-    
     Term ret = NULL;
     bool ok = sum.has_pending_push(ret);
     assert(ok);
-
     return ret;
 }
 

@@ -879,7 +879,6 @@ Term FlatZincBank::make_private_pbsum(
     for (size_t i = 0; i < clauses.size(); i++) {
         tmp.push_back(weight);
     }
-
     return make_private_pbsum(clauses, tmp);
 }
 
@@ -906,6 +905,24 @@ Term FlatZincBank::make_private_pbsum(
 //-----------------------------------------------------------------------------
 // private functionality
 //-----------------------------------------------------------------------------
+
+const DataType *FlatZincBank::get_bv_datatype(NumFlatZincDomainSharedPtr &dom) const
+{
+    /*assert(cmdline_->fzn_bv_integers());
+    // FIXME: here you can always force width of 25 (or configurable)
+    //        instead of trying to dynamically compute the right size
+    //        this would help because you no longer need to extend BV
+    //        around, though you might have more bits than needed on some problems
+    if (dom->is_unbounded()) {
+        return mgr_->get_bv_type(25);  // 25: -10.000.000..10.000.000 default MiniZinc domain
+                                       // TODO(PT): this should be a configurable option
+    } else {
+        Number low = dom->lower();
+        Number upp = dom->upper();
+        size_t s = get_sbv_size(low, upp);
+        return mgr_->get_bv_type(s);
+    }*/
+}
 
 const DataType *FlatZincBank::get_datatype(NumFlatZincDomainSharedPtr &dom) const
 {
@@ -1010,6 +1027,7 @@ bool FlatZincBank::is_compatible_type(FznType type, Term t) const
     if(!tp){
         std::cout<<"is_compatible_type Emtpy\n";
     }
+    //std::cout<<"The type: "<<type<<std::endl;
     switch(type) {
     case FZN_BOOL:
         return mgr_->is_bool_type(tp);

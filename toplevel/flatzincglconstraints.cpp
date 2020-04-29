@@ -50,17 +50,46 @@ Term FlatZincGlConstraints::all_different(TermList &as)
     if (mgr_->is_bool_type(as[0]->get_type())) {
         func = &TermManager::make_iff;
     }
+    if (cmdline_->fzn_bv_all_different()) {
+        //std::cout<<"all_different 1\n";
+        width = bank_->get_required_bv_bits(as, lower, upper, positive_domain);
+        assert(lower);
+        assert(upper);
+        assert(width > 0);
+    }
     for (TermList::const_iterator i = as.begin(), end = as.end();
              i != end; ++i) {
         Term a = *i;
         assert(a);
+        if (cmdline_->fzn_bv_all_different()) {
+            //std::cout<<"all_different 2\n";
+            //a = mgr_->make_int_to_bv(width, a);
+            Term bvbounds = NULL;
+            if (positive_domain) {
+                bvbounds = mgr_->make_and(
+                    mgr_->make_bv_ule(/*mgr_->make_int_to_bv(width, lower)*/lower, a),
+                    mgr_->make_bv_ule(a, /*mgr_->make_int_to_bv(width, upper)*/upper)
+                );
+            } else {
+                bvbounds = mgr_->make_and(
+                    mgr_->make_bv_sle(/*mgr_->make_int_to_bv(width, lower)*/lower, a),
+                    mgr_->make_bv_sle(a, /*mgr_->make_int_to_bv(width, upper)*/upper)
+                );
+            }
+            ret = mgr_->make_and(ret, bvbounds);
+        }
         for (TermList::const_iterator j = i+1; j != end; ++j) {
             Term b = *j;
             assert(b);
+            if (cmdline_->fzn_bv_all_different()) {
+                //std::cout<<"all_different 3\n";
+                //b = mgr_->make_int_to_bv(width, b);
+            }
             Term eq = mgr_->make_not((mgr_->*func)(a, b));
             ret = mgr_->make_and(ret, eq);
         }
     }
+    //std::cout<<"Temp: ";
     return ret;
 }
 
@@ -83,14 +112,40 @@ Term FlatZincGlConstraints::all_different_except_0(TermList &as)
         func = &TermManager::make_iff;
         zero = false_;
     }
+    if (cmdline_->fzn_bv_all_different()) {
+        width = bank_->get_required_bv_bits(as, lower, upper, positive_domain);
+        assert(lower);
+        assert(upper);
+        assert(width > 0);
+        zero = mgr_->make_bv_number(0, width);
+    }
     for (TermList::const_iterator i = as.begin(), end = as.end();
             i != end; ++i) {
         Term a = *i;
         assert(a);
+        if (cmdline_->fzn_bv_all_different()) {
+            //a = mgr_->make_int_to_bv(width, a);
+            Term bvbounds = NULL;
+            if (positive_domain) {
+                bvbounds = mgr_->make_and(
+                    mgr_->make_bv_ule(/*mgr_->make_int_to_bv(width, lower)*/lower, a),
+                    mgr_->make_bv_ule(a, /*mgr_->make_int_to_bv(width, upper)*/upper)
+                );
+            } else {
+                bvbounds = mgr_->make_and(
+                    mgr_->make_bv_sle(/*mgr_->make_int_to_bv(width, lower)*/lower, a),
+                    mgr_->make_bv_sle(a, /*mgr_->make_int_to_bv(width, upper)*/upper)
+                );
+            }
+            ret = mgr_->make_and(ret, bvbounds);
+        }
         Term aez = (mgr_->*func)(a, zero);
         for (TermList::const_iterator j = i+1; j != end; ++j) {
             Term b = *j;
             assert(b);
+            if (cmdline_->fzn_bv_all_different()) {
+                //b = mgr_->make_int_to_bv(width, b);
+            }
             Term bez = (mgr_->*func)(b, zero);
             Term eq = mgr_->make_not((mgr_->*func)(a, b));
             Term cl = mgr_->make_or(eq,

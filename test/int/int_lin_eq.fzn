@@ -1,0 +1,11 @@
+array [1..3] of var int:y;
+array [1..3] of int:x = [1,2,3];
+int: z = 10;
+var int: s;
+
+constraint int_lin_eq(x,y,z);
+constraint int_eq(y[3],1);
+constraint int_eq(y[2],1);
+constraint int_eq(y[1],s);
+
+solve maximize s;

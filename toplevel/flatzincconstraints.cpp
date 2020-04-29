@@ -8,6 +8,7 @@
 
 #include "../toplevel/flatzincconstraints.h"
 #include "../api/optenvironment.h"
+#include "../toplevel/flatzincbv.h"
 #include<iostream>
 
 namespace msat {
@@ -82,18 +83,33 @@ Term FlatZincConstraints::array_element(Term b, TermList &as, Term c)
     if (200 < as.size()) {
         Term lower = NULL;
         Term upper = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            lower = fzn_make_sbv_number(mgr_, 1);
+            upper = fzn_make_sbv_number(mgr_, as.size());
+            ret = mgr_->make_and(
+                        fzn_make_bv_sle(mgr_, lower, b),
+                        fzn_make_bv_sle(mgr_, b, upper)
+                    );
+        } else {
             lower = one_;
             upper = mgr_->make_number((int)as.size());
             ret = mgr_->make_and(
                         mgr_->make_leq(lower, b),
                         mgr_->make_leq(b, upper)
                     );
+        }
     } else {
         Term big_or = false_;
         for (size_t i = 1; i <= as.size(); ++i) {
+            if (cmdline_->fzn_bv_integers()) {
+                Term idx = fzn_make_sbv_number(mgr_, i);
+                big_or = mgr_->make_or(big_or,
+                         fzn_make_bv_equal(mgr_, b, idx));
+            } else {
                 Term idx = mgr_->make_number(i);
                 big_or = mgr_->make_or(big_or,
                          mgr_->make_equal(b, idx));
+            }
         }
         ret = big_or;
     }
@@ -102,16 +118,28 @@ Term FlatZincConstraints::array_element(Term b, TermList &as, Term c)
     if (mgr_->is_bool_type(c->get_type())) {
         func = &TermManager::make_iff;
     }
+    bool is_bv = mgr_->is_bv_type(c, NULL);
     size_t i = 1;
     for (TermList::const_iterator it = as.begin(),
             end = as.end(); it != end; it++, i++) {
         assert(*it);
         assert(are_compatible_types(*it, c));
         Term tor = NULL;
-        tor = (mgr_->*func)(*it, c);
-        Term idx = mgr_->make_number(i);
-        tor = mgr_->make_or(tor,
-              mgr_->make_not(mgr_->make_equal(b, idx)));
+        if (is_bv) {
+            assert(cmdline_->fzn_bv_integers());
+            tor = fzn_make_bv_equal(mgr_, *it, c);
+        } else {
+            tor = (mgr_->*func)(*it, c);
+        }
+        if (cmdline_->fzn_bv_integers()) {
+            Term idx = fzn_make_sbv_number(mgr_, Number(i));
+            tor = mgr_->make_or(tor,
+                  mgr_->make_not(fzn_make_bv_equal(mgr_, b, idx)));
+        } else {
+            Term idx = mgr_->make_number(i);
+            tor = mgr_->make_or(tor,
+                  mgr_->make_not(mgr_->make_equal(b, idx)));
+        }
         ret = mgr_->make_and(ret, tor);
     }
     return ret;
@@ -200,6 +228,13 @@ Term FlatZincConstraints::bool2int(Term a, Term b)
     assert(is_bool(a));
     assert(is_int(b));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        Term zero = fzn_make_sbv_number(mgr_, 0);
+        Term one = fzn_make_sbv_number(mgr_, 1);
+        ret = mgr_->make_or(a, fzn_make_bv_equal(mgr_, b, zero));
+        ret = mgr_->make_and(ret, mgr_->make_or(mgr_->make_not(a),
+                             fzn_make_bv_equal(mgr_, one, b)));
+    } else {
         Term eqzero = mgr_->make_leq(b, zero_);
         Term eqone = mgr_->make_leq(one_, b);
         ret = mgr_->make_or(mgr_->make_not(eqzero), mgr_->make_not(eqone));
@@ -209,6 +244,7 @@ Term FlatZincConstraints::bool2int(Term a, Term b)
         //           have been declared with a 0/1 domain
         ret = mgr_->make_and(ret, mgr_->make_leq(zero_, b));
         ret = mgr_->make_and(ret, mgr_->make_leq(b, one_));
+    }
     return ret;
 }
 
@@ -290,6 +326,7 @@ Term FlatZincConstraints::bool_lin_eq(TermList &as, TermList &bs, Term c)
             << "\texpected `(array [int] of int, array [int] of var bool, var int)'",
             FlatZincInterface::TYPE_INST_ERROR);
     }
+    //env_->assert_formula(ret);
     return ret;
 }
 
@@ -300,7 +337,11 @@ Term FlatZincConstraints::bool_lin_le(TermList &as, TermList &bs, Term c)
     Term ret = NULL;
     Term sum = make_bool_lin(as, bs, c);
     if (sum != NULL) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = fzn_make_bv_sle(mgr_, sum, c);
+        } else {
             ret = mgr_->make_leq(sum, c);
+        }
     } else {
         parser_->raise(ParserInterface::error("predicate `bool_lin_le' ")
             << "argument list has invalid type-inst:\n"
@@ -371,9 +412,12 @@ Term FlatZincConstraints::float_abs(Term a, Term b)
     Term ret = NULL;
     Number v;
     if (mgr_->is_number(a->get_symbol(), &v)) {
-        ret = mgr_->make_equal(mgr_->make_number(abs(v)), b);
+        Term x = mgr_->make_number(abs(v));
+        //env_->assert_formula(x);
+        ret = mgr_->make_equal(x, b);
     } else {
-        Term minus_b = make_times(b, mgr_->make_number(-1));
+        Term x =  mgr_->make_number(-1);
+        Term minus_b = make_times(b,x);
         Term b_dom = mgr_->make_leq(zero_, b);
         Term a_dom = mgr_->make_and(
                 mgr_->make_leq(minus_b, a),
@@ -872,7 +916,30 @@ Term FlatZincConstraints::int_abs(Term a, Term b)
     assert(is_int(a));
     assert(is_int(b));
     Term ret = NULL;
+    //std::cout<<cmdline_->fzn_bv_integers()<<std::endl;
+    if (cmdline_->fzn_bv_integers()) {
+        Number v;
+        if (mgr_->is_number(mgr_->make_int_from_sbv(a)->get_symbol(), &v)) {
+            Term abs_v = fzn_make_sbv_number(mgr_, abs(v));
+            ret = fzn_make_bv_equal(mgr_, abs_v, b);
+        } else {
+            Term minus_b = mgr_->make_bv_neg(mgr_->make_bv_sign_extend(1, b));
+            Term ext_a = mgr_->make_bv_sign_extend(1, a);
+            Term bvzero = fzn_make_sbv_number(mgr_, 0);
+            Term b_dom = fzn_make_bv_sle(mgr_, bvzero, b);
+            Term a_dom = mgr_->make_and(
+                         fzn_make_bv_sle(mgr_, minus_b, ext_a),
+                         fzn_make_bv_sle(mgr_, a, b));
+            Term a_val = mgr_->make_or(
+                         fzn_make_bv_sle(mgr_, ext_a, minus_b),
+                         fzn_make_bv_sle(mgr_, b, a));
+            ret = mgr_->make_and(b_dom,
+                  mgr_->make_and(a_dom, a_val));
+
+        }
+    } else {
         ret = float_abs(a, b);
+    }
     return ret;
 }
 
@@ -1006,7 +1073,11 @@ Term FlatZincConstraints::int_eq(Term a, Term b)
     assert(is_int(a));
     assert(is_int(b));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = fzn_make_bv_equal(mgr_, a, b);
+    } else {
         ret = mgr_->make_equal(a, b);
+    }
     return ret;
 }
 
@@ -1017,7 +1088,11 @@ Term FlatZincConstraints::int_eq_reif(Term a, Term b, Term r)
     assert(is_int(b));
     assert(is_bool(r));
     Term eq = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        eq = fzn_make_bv_equal(mgr_, a, b);
+    } else {
         eq = mgr_->make_equal(a, b);
+    }
     Term ret = mgr_->make_and(mgr_->make_or(mgr_->make_not(r), eq),
                               mgr_->make_or(r, mgr_->make_not(eq)));
     return ret;
@@ -1029,7 +1104,11 @@ Term FlatZincConstraints::int_le(Term a, Term b)
     assert(is_int(a));
     assert(is_int(b));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = fzn_make_bv_sle(mgr_, a, b);
+    } else {
         ret = mgr_->make_leq(a, b);
+    }
     return ret;
 }
 
@@ -1040,7 +1119,11 @@ Term FlatZincConstraints::int_le_reif(Term a, Term b, Term r)
     assert(is_int(b));
     assert(is_bool(r));
     Term leq = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        leq = fzn_make_bv_sle(mgr_, a, b);
+    } else {
         leq = mgr_->make_leq(a, b);
+    }
     Term ret = mgr_->make_and(mgr_->make_or(mgr_->make_not(r), leq),
                               mgr_->make_or(r, mgr_->make_not(leq)));
     return ret;
@@ -1053,7 +1136,11 @@ Term FlatZincConstraints::int_lin_eq(TermList &as, TermList &bs, Term c)
     Term ret = NULL;
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = fzn_make_bv_equal(mgr_, sum, c);
+        } else {
             ret = mgr_->make_equal(sum, c);
+        }
     } else {
         parser_->raise(ParserInterface::error("predicate `int_lin_eq' ")
             << "argument list has invalid type-inst:\n"
@@ -1072,7 +1159,11 @@ Term FlatZincConstraints::int_lin_eq_reif(TermList &as, TermList &bs, Term c, Te
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
         Term eq = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            eq = fzn_make_bv_equal(mgr_, sum, c);
+        } else {
             eq = mgr_->make_equal(sum, c);
+        }
         ret = mgr_->make_and(mgr_->make_or(mgr_->make_not(r), eq),
                              mgr_->make_or(r, mgr_->make_not(eq)));
     } else {
@@ -1091,7 +1182,11 @@ Term FlatZincConstraints::int_lin_le(TermList &as, TermList &bs, Term c)
     Term ret = NULL;
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = fzn_make_bv_sle(mgr_, sum, c);
+        } else {
             ret = mgr_->make_leq(sum, c);
+        }
     } else {
         parser_->raise(ParserInterface::error("predicate `int_lin_le' ")
             << "argument list has invalid type-inst:\n"
@@ -1110,7 +1205,11 @@ Term FlatZincConstraints::int_lin_le_reif(TermList &as, TermList &bs, Term c, Te
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
         Term leq = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            leq = fzn_make_bv_sle(mgr_, sum, c);
+        } else {
             leq = mgr_->make_leq(sum, c);
+        }
         ret = mgr_->make_and(mgr_->make_or(mgr_->make_not(r), leq),
                              mgr_->make_or(r, mgr_->make_not(leq)));
     } else {
@@ -1129,7 +1228,11 @@ Term FlatZincConstraints::int_lin_lt(TermList &as, TermList &bs, Term c)
     Term ret = NULL;
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = fzn_make_bv_slt(mgr_, sum, c);
+        } else {
             ret = mgr_->make_not(mgr_->make_leq(c, sum));
+        }
     } else {
         parser_->raise(ParserInterface::error("predicate `int_lin_lt' ")
             << "argument list has invalid type-inst:\n"
@@ -1148,7 +1251,11 @@ Term FlatZincConstraints::int_lin_lt_reif(TermList &as, TermList &bs, Term c, Te
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
         Term lt = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            lt = fzn_make_bv_slt(mgr_, sum, c);
+        } else {
             lt = mgr_->make_not(mgr_->make_leq(c, sum));
+        }
         ret = mgr_->make_and(mgr_->make_or(mgr_->make_not(r), lt),
                              mgr_->make_or(r, mgr_->make_not(lt)));
     } else {
@@ -1167,7 +1274,11 @@ Term FlatZincConstraints::int_lin_ne(TermList &as, TermList &bs, Term c)
     Term ret = NULL;
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = mgr_->make_not(fzn_make_bv_equal(mgr_, sum, c));
+        } else {
             ret = mgr_->make_not(mgr_->make_equal(sum, c));
+        }
     } else {
         parser_->raise(ParserInterface::error("predicate `int_lin_ne' ")
             << "argument list has invalid type-inst:\n"
@@ -1186,7 +1297,11 @@ Term FlatZincConstraints::int_lin_ne_reif(TermList &as, TermList &bs, Term c, Te
     Term sum = make_int_lin(as, bs, c);
     if (sum != NULL) {
         Term eq = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            eq = fzn_make_bv_equal(mgr_, sum, c);
+        } else {
             eq = mgr_->make_equal(sum, c);
+        }
         ret = mgr_->make_or(mgr_->make_not(r), mgr_->make_not(eq));
         ret = mgr_->make_and(ret, mgr_->make_or(r, eq));
     } else {
@@ -1204,7 +1319,11 @@ Term FlatZincConstraints::int_lt(Term a, Term b)
     assert(is_int(a));
     assert(is_int(b));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = fzn_make_bv_slt(mgr_, a, b);
+    } else {
         ret = mgr_->make_not(mgr_->make_leq(b, a));
+    }
     return ret;
 }
 
@@ -1215,10 +1334,17 @@ Term FlatZincConstraints::int_lt_reif(Term a, Term b, Term r)
     assert(is_int(b));
     assert(is_bool(r));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = mgr_->make_or(mgr_->make_not(r),
+                            fzn_make_bv_slt(mgr_, a, b));
+        ret = mgr_->make_and(ret,
+              mgr_->make_or(r, fzn_make_bv_sle(mgr_, b, a)));
+    } else {
         Term lei = mgr_->make_leq(b, a);
         ret = mgr_->make_or(mgr_->make_not(r),
                             mgr_->make_not(lei));
         ret = mgr_->make_and(ret, mgr_->make_or(r, lei));
+    }
     return ret;
 }
 
@@ -1229,6 +1355,29 @@ Term FlatZincConstraints::int_max(Term a, Term b, Term c)
     assert(is_int(b));
     assert(is_int(c));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        Number num_a;
+        Number num_b;
+        if (mgr_->is_number(mgr_->make_int_from_sbv(a)->get_symbol(), &num_a)
+                && mgr_->is_number(mgr_->make_int_from_sbv(b)->get_symbol(), &num_b)) {
+            
+            if (num_a < num_b) {
+                ret = fzn_make_bv_equal(mgr_, b, c);
+            } else {
+                ret = fzn_make_bv_equal(mgr_, a, c);
+            }
+        } else {
+            Term c_dom = mgr_->make_and(
+                    fzn_make_bv_sle(mgr_, a, c),
+                    fzn_make_bv_sle(mgr_, b, c)
+                );
+            Term c_val = mgr_->make_or(
+                    fzn_make_bv_sle(mgr_, c, a),
+                    fzn_make_bv_sle(mgr_, c, b)
+                );
+            ret = mgr_->make_and(c_dom, c_val);
+        }
+    } else {
         Number num_a;
         Number num_b;
         if (mgr_->is_number(a->get_symbol(), &num_a)
@@ -1249,16 +1398,39 @@ Term FlatZincConstraints::int_max(Term a, Term b, Term c)
                 );
             ret = mgr_->make_and(c_dom, c_val);
         }
+    }
     return ret;
 }
 
 Term FlatZincConstraints::int_min(Term a, Term b, Term c)
 {
-    assert(a && b && c);
+     assert(a && b && c);
     assert(is_int(a));
     assert(is_int(b));
     assert(is_int(c));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        Number num_a;
+        Number num_b;
+        if (mgr_->is_number(mgr_->make_int_from_sbv(a)->get_symbol(), &num_a)
+                && mgr_->is_number(mgr_->make_int_from_sbv(b)->get_symbol(), &num_b)) {
+            if (num_a < num_b) {
+                ret = fzn_make_bv_equal(mgr_, a, c);
+            } else {
+                ret = fzn_make_bv_equal(mgr_, b, c);
+            }
+        } else {
+            Term c_dom = mgr_->make_and(
+                    fzn_make_bv_sle(mgr_, c, a),
+                    fzn_make_bv_sle(mgr_, c, b)
+                );
+            Term c_val = mgr_->make_or(
+                    fzn_make_bv_sle(mgr_, a, c),
+                    fzn_make_bv_sle(mgr_, b, c)
+                );
+            ret = mgr_->make_and(c_dom, c_val);
+        }
+    } else {
         Number num_a;
         Number num_b;
         if (mgr_->is_number(a->get_symbol(), &num_a)
@@ -1279,6 +1451,7 @@ Term FlatZincConstraints::int_min(Term a, Term b, Term c)
                 );
             ret = mgr_->make_and(c_dom, c_val);
         }
+    }
     return ret;
 }
 
@@ -1377,7 +1550,11 @@ Term FlatZincConstraints::int_ne(Term a, Term b)
     assert(is_int(a));
     assert(is_int(b));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = mgr_->make_not(fzn_make_bv_equal(mgr_, a, b));
+    } else {
         ret  = mgr_->make_not(mgr_->make_equal(a, b));
+    }
     return ret;
 }
 
@@ -1388,7 +1565,11 @@ Term FlatZincConstraints::int_ne_reif(Term a, Term b, Term r)
     assert(is_int(b));
     assert(is_bool(r));
     Term eq = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        eq = fzn_make_bv_equal(mgr_, b, a);
+    } else {
         eq = mgr_->make_equal(b, a);
+    }
     Term ret = mgr_->make_or(mgr_->make_not(r),
                              mgr_->make_not(eq));
     ret = mgr_->make_and(ret, mgr_->make_or(r, eq));
@@ -1402,7 +1583,12 @@ Term FlatZincConstraints::int_plus(Term a, Term b, Term c)
     assert(is_int(b));
     assert(is_int(c));
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = fzn_make_bv_equal(mgr_, c,
+              fzn_make_bv_add(mgr_, a, b));
+    } else {
         ret = mgr_->make_equal(c, mgr_->make_plus(a, b));
+    }
     return ret;
 }
 
@@ -1413,8 +1599,13 @@ Term FlatZincConstraints::int_times(Term a, Term b, Term c)
     assert(is_int(b));
     assert(is_int(c));
     Term ret = NULL;
-        bool a_is_num = mgr_->is_number(a->get_symbol());
-        bool b_is_num = mgr_->is_number(b->get_symbol());
+    Number n;
+    if (cmdline_->fzn_bv_integers()) {
+        ret = fzn_make_bv_equal(mgr_, c,
+              fzn_make_bv_mul(mgr_, a, b));
+    } else {
+        bool a_is_num = mgr_->is_number(a->get_symbol(),&n);
+        bool b_is_num = mgr_->is_number(b->get_symbol(),&n);
 
         if (a_is_num || b_is_num) {
             return mgr_->make_equal(c, mgr_->make_times(a, b));
@@ -1429,6 +1620,7 @@ Term FlatZincConstraints::int_times(Term a, Term b, Term c)
                 return make_linearized_times(a, b, c);
             }
         }
+    }
     return ret;
 }
 
@@ -1437,6 +1629,9 @@ Term FlatZincConstraints::int2float(Term a, Term b)
     assert(a && b);
     assert(is_int(a));
     assert(is_float(b));
+    if (cmdline_->fzn_bv_integers()) {
+        a = mgr_->make_int_from_sbv(a);
+    }
     Term ret = mgr_->make_equal(a, b);
     return ret;
 }
@@ -1449,18 +1644,33 @@ Term FlatZincConstraints::array_set_element(Term b, FznSetListSharedPtr as, FznS
     if (200 < as->size()) {
         Term lower = NULL;
         Term upper = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            lower = fzn_make_sbv_number(mgr_, 1);
+            upper = fzn_make_sbv_number(mgr_, as->size());
+            ret = mgr_->make_and(
+                        fzn_make_bv_sle(mgr_, lower, b),
+                        fzn_make_bv_sle(mgr_, b, upper)
+                  );
+        } else {
             lower = one_;
             upper = mgr_->make_number((int)as->size());
             ret = mgr_->make_and(
                         mgr_->make_leq(lower, b),
                         mgr_->make_leq(b, upper)
                   );
+        }
     } else {
         Term big_or = false_;
         for (size_t i = 1; i <= as->size(); ++i) {
+            if (cmdline_->fzn_bv_integers()) {
+                Term idx = fzn_make_sbv_number(mgr_, i);
+                big_or = mgr_->make_or(big_or,
+                         fzn_make_bv_equal(mgr_, b, idx));
+            } else {
                 Term idx = mgr_->make_number(i);
                 big_or = mgr_->make_or(big_or,
                          mgr_->make_equal(b, idx));
+            }
         }
         ret = big_or;
     }
@@ -1469,9 +1679,15 @@ Term FlatZincConstraints::array_set_element(Term b, FznSetListSharedPtr as, FznS
             end = as->end(); it != end; it++, i++) {
         assert(*it);
         Term tor = set_eq(*it, c);
+        if (cmdline_->fzn_bv_integers()) {
+            Term idx = fzn_make_sbv_number(mgr_, Number(i));
+            tor = mgr_->make_or(tor,
+                  mgr_->make_not(fzn_make_bv_equal(mgr_, b, idx)));
+        } else {
             Term idx = mgr_->make_number(i);
             tor = mgr_->make_or(tor,
                   mgr_->make_not(mgr_->make_equal(b, idx)));
+        }
         ret = mgr_->make_and(ret, tor);
     }
     return ret;
@@ -1484,13 +1700,23 @@ Term FlatZincConstraints::set_card(FznSetSharedPtr a, Term b)
     const NumIntervalSet &aset = a->get_domain();
     if (a->is_set_literal()) {
         Term ret = NULL;
+        if (cmdline_->fzn_bv_integers()) {
+            Term v = fzn_make_sbv_number(mgr_, Number(aset.set_card()));
+            ret = fzn_make_bv_equal(mgr_, b, v);
+        } else {
             Term v = mgr_->make_number(aset.set_card());
             ret = mgr_->make_equal(b, v);
+        }
         return ret;
     } else {
         if (aset.is_empty()) {
             Term ret = NULL;
+            if (cmdline_->fzn_bv_integers()) {
+                ret = fzn_make_bv_equal(mgr_, b,
+                      fzn_make_sbv_number(mgr_, 0));
+            } else {
                 ret = mgr_->make_equal(b, zero_);
+            }
             return ret;
         } else {
             
@@ -1505,13 +1731,27 @@ Term FlatZincConstraints::set_card(FznSetSharedPtr a, Term b)
                         
             Term pbterm = bank_->make_private_pbsum(blist, one_);
             Term ret = NULL;
+            if (cmdline_->fzn_bv_integers()) {
+                size_t width = 0;
+                bool ok = mgr_->is_bv_type(b, &width);
+                assert(ok);
+                Term bvpbterm = mgr_->make_int_to_bv(width, mgr_->make_floor(pbterm));
+                Term card = fzn_make_sbv_number(mgr_, Number(set_card), width);
+                Term zero = fzn_make_sbv_number(mgr_, 0, width);
 
+                ret = fzn_make_bv_sle(mgr_, b, card);
+                ret = mgr_->make_and(ret, fzn_make_bv_sle(mgr_, bvpbterm, card));
+                ret = mgr_->make_and(ret, fzn_make_bv_sle(mgr_, zero, b));
+                ret = mgr_->make_and(ret, fzn_make_bv_sle(mgr_, zero, bvpbterm));
+                ret = mgr_->make_and(ret, fzn_make_bv_equal(mgr_, b, bvpbterm));
+            } else {
                 ret = mgr_->make_leq(b, mgr_->make_number(set_card));
                 ret = mgr_->make_and(ret, mgr_->make_leq(pbterm,
                                           mgr_->make_number(set_card)));
                 ret = mgr_->make_and(ret, mgr_->make_leq(zero_, b));
                 ret = mgr_->make_and(ret, mgr_->make_leq(zero_, pbterm));
                 ret = mgr_->make_and(ret, mgr_->make_equal(b, pbterm));
+            }
             
             return ret;
         }
@@ -2028,10 +2268,15 @@ Term FlatZincConstraints::make_ite(Term a, Term b, Term c)
 
 Term FlatZincConstraints::make_times(Term a, Term b)
 {
+    Number n;
+    if (cmdline_->fzn_bv_integers()
+            && mgr_->is_bv_type(a, NULL)
+            && mgr_->is_bv_type(b, NULL)) {
+        return fzn_make_bv_mul(mgr_, a, b);
+    }
     
-    bool a_is_num = mgr_->is_number(a->get_symbol());
-    bool b_is_num = mgr_->is_number(b->get_symbol());
-
+    bool a_is_num = mgr_->is_number(a->get_symbol(),&n);
+    bool b_is_num = mgr_->is_number(b->get_symbol(),&n);
     if (a_is_num || b_is_num) {
         return mgr_->make_times(a, b);
     } else {
@@ -2092,10 +2337,24 @@ Term FlatZincConstraints::make_bool_lin(TermList &as, TermList &bs, Term c)
 {
     Term ret = NULL;
     size_t width = 0;
+    if (cmdline_->fzn_bv_integers()) {
+        bool ok = mgr_->is_bv_type(c, &width);
+        assert(ok);
+    }
     if (0 == as.size() || 0 == bs.size()) {
+        if (cmdline_->fzn_bv_integers()) {
+            ret = fzn_make_sbv_number(mgr_, 0, width);
+        } else {
             ret = zero_;
+        }
     } else {
+        if (cmdline_->fzn_bv_integers()) {
+            fzn_make_bv_to_int(mgr_, as);
+        }
         ret = bank_->make_private_pbsum(bs, as);
+        if (cmdline_->fzn_bv_integers()) {
+            ret = mgr_->make_int_to_bv(width, mgr_->make_floor(ret));
+        }        
     }
     return ret;
 }
@@ -2103,7 +2362,6 @@ Term FlatZincConstraints::make_bool_lin(TermList &as, TermList &bs, Term c)
 Term FlatZincConstraints::make_float_lin(TermList &as, TermList &bs, Term c)
 {
     Term ret = zero_;
-
         for (TermList::const_iterator itas = as.begin(), itbs = bs.begin(),
                 asend = as.end(), bsend = bs.end(); itas != asend && itbs != bsend;
                 itas++, itbs++) {
@@ -2121,7 +2379,25 @@ Term FlatZincConstraints::make_float_lin(TermList &as, TermList &bs, Term c)
 Term FlatZincConstraints::make_int_lin(TermList &as, TermList &bs, Term c)
 {
     Term ret = NULL;
+    if (cmdline_->fzn_bv_integers()) {
+        if (0 == as.size() || 0 == bs.size()) {
+            ret = fzn_make_sbv_number(mgr_, 0);
+        } else {
+            for (TermList::const_iterator itas = as.begin(), itbs = bs.begin(),
+                    asend = as.end(), bsend = bs.end(); itas != asend && itbs != bsend;
+                    itas++, itbs++) {
+                assert(*itas && *itbs);
+                if (!is_int(*itas) || !is_int(*itbs)) {
+                    ret = NULL;
+                    break;
+                }
+                Term prod = fzn_make_bv_mul(mgr_, *itas, *itbs);
+                ret = (ret ? fzn_make_bv_add(mgr_, ret, prod) : prod);
+            }
+        }
+    } else {
         ret = make_float_lin(as, bs, c);
+    }
     return ret;
 }
 

@@ -44,7 +44,6 @@ public:
 private:
     size_t id_;
     std::string name_;
-    
     std::vector<const DataType *> types_;
 };
 

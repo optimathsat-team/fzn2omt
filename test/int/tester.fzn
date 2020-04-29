@@ -1,0 +1,6 @@
+var int:x = -2;
+var int:y;
+
+constraint int_abs(x,y);
+
+solve maximize y;

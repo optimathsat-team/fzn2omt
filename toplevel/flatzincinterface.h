@@ -32,7 +32,7 @@ class FlatZincInterface: public ToplevelInterface,
                             public FlatZincAbstractParser {
 public:
     MSAT_DECLARE_EXCEPTION(early_unsat)
-    FlatZincInterface(Configuration *config, CmdLine *cmdline);
+    FlatZincInterface(Configuration *config, CmdLine *cmdline, bool bv);
     ///< constructor
 
     ~FlatZincInterface();

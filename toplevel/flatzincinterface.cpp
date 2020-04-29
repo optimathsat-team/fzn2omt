@@ -65,7 +65,7 @@ namespace msat { namespace opt {
 // Init/Deinit
 //-----------------------------------------------------------------------------
 
-FlatZincInterface::FlatZincInterface(Configuration *config, CmdLine *cmdline):
+FlatZincInterface::FlatZincInterface(Configuration *config, CmdLine *cmdline, bool bv):
     cmdline_(cmdline),
     cfg_(config),
     env_(NULL),
@@ -88,6 +88,10 @@ FlatZincInterface::FlatZincInterface(Configuration *config, CmdLine *cmdline):
     reset_response();
     print_success_ = false;
     print_model_ = true;
+
+    // Note: model generation always enabled for FlatZinc
+    //cfg_->set_model_generation(true);
+    //cfg_->set_par_mode(Configuration::PARETO_CALLBACK);
 
     status_ = Environment::UNKNOWN;
 }

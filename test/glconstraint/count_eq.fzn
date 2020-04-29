@@ -1,5 +1,5 @@
 var int:i1 = 4; var int: i2;
 
-constraint optimathsat_count_eq([6,4,4,4,2,3,4,2,4,3,4,4],i1,i2);
+constraint optimathsat_count_eq([6,4,4,4],i1,i2);
 
 solve minimize i2;
