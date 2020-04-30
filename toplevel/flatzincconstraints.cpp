@@ -118,7 +118,8 @@ Term FlatZincConstraints::array_element(Term b, TermList &as, Term c)
     if (mgr_->is_bool_type(c->get_type())) {
         func = &TermManager::make_iff;
     }
-    bool is_bv = mgr_->is_bv_type(c, NULL);
+    size_t n;
+    bool is_bv = mgr_->is_bv_type(c, &n);
     size_t i = 1;
     for (TermList::const_iterator it = as.begin(),
             end = as.end(); it != end; it++, i++) {
@@ -2268,13 +2269,13 @@ Term FlatZincConstraints::make_ite(Term a, Term b, Term c)
 
 Term FlatZincConstraints::make_times(Term a, Term b)
 {
-    Number n;
+    size_t n2;
     if (cmdline_->fzn_bv_integers()
-            && mgr_->is_bv_type(a, NULL)
-            && mgr_->is_bv_type(b, NULL)) {
+            && mgr_->is_bv_type(a, &n2)
+            && mgr_->is_bv_type(b, &n2)) {
         return fzn_make_bv_mul(mgr_, a, b);
     }
-    
+    Number n;
     bool a_is_num = mgr_->is_number(a->get_symbol(),&n);
     bool b_is_num = mgr_->is_number(b->get_symbol(),&n);
     if (a_is_num || b_is_num) {

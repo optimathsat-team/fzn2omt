@@ -129,6 +129,7 @@ void FlatZincBank::declare_var(
     }
 
     if (!mgr_->is_true(s)) {
+        //std::cout<<"-->";
         env_->assert_formula(cs);
     }
 
