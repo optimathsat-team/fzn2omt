@@ -419,6 +419,9 @@ inline bool TermManager::is_number(const Symbol *s, Number *out_numval) const
         *out_numval = n;
         return true;
     }
+    if(name[0] == '/'){
+        return false;
+    }
     for (int i=0; i<name.length(); i++)
     {
         if(name[i] == '/' && !real){

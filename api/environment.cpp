@@ -35,7 +35,6 @@ Environment::~Environment()
 void Environment::assert_formula_ric(Term formula, bool last, bool isreal){
     int arity = formula->get_children_number();
     std::string name(formula->get_symbol()->get_name());
-    //std::cout<<"["<<formula->get_type()->get_name()<<"-"<<isreal<<"]";
     if(arity == 0){
         if(bv_ && formula->get_type() == mgr_->get_integer_type()){            
             std::replace(name.begin(), name.end(), ':', '_');

@@ -281,6 +281,7 @@ Term TermManager::make_equal(Term t1, Term t2)
     if(is_number(t1->get_symbol(),&a) && is_number(t2->get_symbol(),&a)){
         std::string t1_name(t1->get_symbol()->to_str());
         std::string t2_name(t2->get_symbol()->to_str());
+
         if(atof(t1_name.c_str())==atof(t2_name.c_str()))
             return true_term_;
         else
