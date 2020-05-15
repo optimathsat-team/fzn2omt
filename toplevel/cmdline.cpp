@@ -41,6 +41,10 @@ bool CmdLine::fzn_bv_all_different(){
 	return bv_;
 }
 
+bool CmdLine::fzn_asoft_encoding(){
+	return false;
+}
+
 void CmdLine::update_config(Configuration *cfg){
 }
 

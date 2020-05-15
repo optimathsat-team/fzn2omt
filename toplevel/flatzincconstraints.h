@@ -277,6 +277,8 @@ protected:
     Term zero_;
     Term true_;
     Term false_;
+
+    bool bv_enc_;
 };
 
 }} // namespace

@@ -31,6 +31,7 @@ public:
     bool fzn_max_solutions();
     bool fzn_bv_integers();
     bool fzn_bv_all_different();
+    bool fzn_asoft_encoding();
 private:
     std::string inputfile_;
     Configuration config_;
