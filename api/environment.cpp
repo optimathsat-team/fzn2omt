@@ -25,6 +25,7 @@ Environment::Environment(Configuration *config, bool api_trace)
    {
     mgr_ = new TermManager(config->bv_);
     bv_ = config->bv_;
+    language_ = config->language_;
    }
 
 Environment::~Environment()
@@ -40,7 +41,15 @@ void Environment::assert_formula_ric(Term formula, bool last, bool isreal){
             std::replace(name.begin(), name.end(), ':', '_');
             std::string name2 = std::to_string(atoi(name.c_str()));
             if(name2.compare(name) == 0 && !isreal){
-                std::cout<<"((_ to_bv 25)" <<name<<") ";
+                switch(language_){
+                    case(OPTIMATHSAT):
+                        std::cout<<"((_ to_bv 25)" <<name<<") ";
+                    break;
+                
+                    case(Z3):
+                        std::cout<<"((_ int2bv 25)" <<name<<") ";
+                    break;   
+                }
             }
             else{
                 std::cout<<name;

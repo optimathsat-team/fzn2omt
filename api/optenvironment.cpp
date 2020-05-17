@@ -18,13 +18,15 @@ namespace opt {
 OptEnvironment::OptEnvironment(Configuration *config)
     : Environment(config, false)
 {
-
+    bv_ = config->bv_;
+    language_ = config->language_;
 }
 
 OptEnvironment::OptEnvironment(Configuration *config, TermManager *mgr)
     : Environment(config, mgr)
 {
-
+    bv_ = config->bv_;
+    language_ = config->language_;
 }
 
 OptEnvironment::~OptEnvironment()
@@ -65,7 +67,10 @@ OptSearch *OptEnvironment::make_minimize(
 {
     assert(term);
     std::cout<<"(minimize "<<term->get_symbol()->get_name();
-    std::cout<<" :signed)"<<std::endl;
+    if(bv_ && language_ == OPTIMATHSAT){
+        std::cout<<" :signed";
+    }
+    std::cout<<")"<<std::endl;
     return NULL;
 }
 
@@ -76,7 +81,10 @@ OptSearch *OptEnvironment::make_maximize(
     
     assert(term);
     std::cout<<"(maximize "<<term->get_symbol()->get_name();
-    std::cout<<" :signed)"<<std::endl;
+    if(bv_ && language_ == OPTIMATHSAT){
+        std::cout<<" :signed";
+    }
+    std::cout<<")"<<std::endl;
     return NULL;
     
 }

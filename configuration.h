@@ -24,11 +24,13 @@ class Configuration {
 
     Configuration();
     Configuration(bool bv);
+    Configuration(bool bv, int language);
 
     bool model_generation();
     void copy_to(Configuration *dest);
     
     bool bv_;
+    int language_;
 private:
 };
 

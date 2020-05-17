@@ -57,6 +57,9 @@ public:
     Term make_circuit(TermList &clauses, TermList &weights, Term id);
     bool is_zero_weight(Term w);
     bool do_assert_soft_formula(Term c, Term w, Term &b_i,Term &nb_i, Term &w_i, Term &enc);
+
+    bool bv_;
+    int language_;
 protected:
     friend class FlatZincInterface;
     friend class FlatZincBank;

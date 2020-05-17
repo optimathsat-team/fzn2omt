@@ -457,7 +457,7 @@ Term TermManager::make_bv_sle(Term t1, Term t2){
     std::vector<Term> children;
     children.push_back(t1);
     children.push_back(t2);
-    return make_term(bvule_,children);
+    return make_term(bvsle_,children);
 }
 
 Term TermManager::make_bv_ule(Term t1, Term t2){

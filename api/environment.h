@@ -71,6 +71,11 @@ public:
         SAT = 1
     };
 
+    enum OMT_languages{
+        OPTIMATHSAT = 0,
+        Z3 = 1
+    };
+
     TermManager *get_term_manager() { return mgr_; }
 
 protected:
@@ -83,6 +88,7 @@ protected:
     bool owns_mgr_;
     status last_check_status_;
     bool bv_;
+    int language_;
     ///< true if this environment is the owner of the TermManager
 };
 
