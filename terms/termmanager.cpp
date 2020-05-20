@@ -572,7 +572,7 @@ size_t TermManager::get_width_from_type(const DataType *tp) const
 
 const DataType *TermManager::get_bv_type(size_t width)
 {
-    return NULL;
+    return get_integer_type();
 }
 
 Term TermManager::make_int_to_bv(size_t width, Term t)

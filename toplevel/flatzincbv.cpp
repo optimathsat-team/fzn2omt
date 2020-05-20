@@ -200,7 +200,6 @@ Term fzn_make_bv_sub(
     assert(ok);
     ok = mgr->is_bv_type(b , &width_b);
     assert(ok);
-
     size_t width = (width_a > width_b ? width_a : width_b) + 1;
     Term ret = mgr->make_bv_sub(
                mgr->make_bv_sign_extend(width - width_a, a),
@@ -220,7 +219,6 @@ Term fzn_make_bv_mul(
     assert(ok);
     ok = mgr->is_bv_type(b , &width_b);
     assert(ok);
-
     Term ret = mgr->make_bv_mul(
                mgr->make_bv_sign_extend(width_b, a),
                mgr->make_bv_sign_extend(width_a, b));

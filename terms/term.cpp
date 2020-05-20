@@ -28,14 +28,14 @@ void Term_::set_term_class(size_t t){
 void Term_::add_child(const Term_ *t){
     children_.push_back(t);
 
-    if(children_.size() != 1)
-        return;
     if(term_name_.compare("bvmul") == 0){
-        class_term_ = t->get_term_class() * 2;
+        class_term_ = std::max(class_term_, t->get_term_class() * 2);
     }else if(term_name_.compare("bvadd") == 0){
-        class_term_ = t->get_term_class() + 1;
+        class_term_ = std::max(class_term_, t->get_term_class() + 1);
+    }else if(term_name_.compare("bvsub") == 0){
+        class_term_ = std::max(class_term_, t->get_term_class() + 1);
     }else{
-        class_term_ = t->get_term_class();
+        class_term_ = std::max(class_term_, t->get_term_class());
     }
 }
 
