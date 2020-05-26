@@ -58,8 +58,11 @@ public:
     bool is_zero_weight(Term w);
     bool do_assert_soft_formula(Term c, Term w, Term &b_i,Term &nb_i, Term &w_i, Term &enc);
 
+    void end_file();
+
     bool bv_;
     int language_;
+    bool objectives_;
 protected:
     friend class FlatZincInterface;
     friend class FlatZincBank;

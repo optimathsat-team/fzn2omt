@@ -17,6 +17,13 @@
 
 namespace msat {
 
+enum omt_languages{
+  OPTIMATHSAT = 0,
+  Z3 = 1,
+  CVC4 = 2,
+  BCLT = 3
+};
+
 class TermManager {
 public:
 
@@ -25,6 +32,7 @@ public:
     static const char MODEL_SYMBOLS_NAMESPACE = '@';
     
     TermManager(bool bv_enc);
+    TermManager(bool bv_enc, int lang);
     ///< constructor
 
     virtual ~TermManager();
@@ -173,7 +181,7 @@ public:
     const Term get_true_term() const;
     const Term get_false_term() const;
 
-
+    int language_;
 protected:
     void typecheck(const Symbol *symb, const TermList &args);
     void typecheck(Term term, const DataType *tp,

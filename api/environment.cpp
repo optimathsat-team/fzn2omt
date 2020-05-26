@@ -19,13 +19,14 @@ Environment::Environment(Configuration *config, TermManager *mgr, bool api_trace
     mgr_(mgr)
    {
     config_ = config;
+    language_ = config->language_config_;
    }
 
 Environment::Environment(Configuration *config, bool api_trace)
    {
-    mgr_ = new TermManager(config->bv_);
+    mgr_ = new TermManager(config->bv_, config->language_config_);
     bv_ = config->bv_;
-    language_ = config->language_;
+    language_ = config->language_config_;
    }
 
 Environment::~Environment()
@@ -48,7 +49,10 @@ void Environment::assert_formula_ric(Term formula, bool last, bool isreal){
                 
                     case(Z3):
                         std::cout<<"((_ int2bv 25)" <<name<<") ";
-                    break;   
+                    break;  
+                    case(CVC4):
+                        std::cout<<"((_ int2bv 25)" <<name<<") ";
+                    break;    
                 }
             }
             else{

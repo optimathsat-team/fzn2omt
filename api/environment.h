@@ -73,7 +73,9 @@ public:
 
     enum OMT_languages{
         OPTIMATHSAT = 0,
-        Z3 = 1
+        Z3 = 1,
+        CVC4 = 2,
+        BCLT = 3
     };
 
     TermManager *get_term_manager() { return mgr_; }

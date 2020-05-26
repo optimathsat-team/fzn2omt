@@ -12,13 +12,12 @@ using namespace std;
 
 enum omt_languages{
   OPTIMATHSAT = 0,
-  Z3 = 1
+  Z3 = 1,
+  CVC4 = 2,
+  BCLT = 3
 };
 
 void incipit(int l, bool bv){
-  // Setting directives
-  std::cout<<"(set-option :produce-models true)"<<std::endl;
-
   // Setting background theory
   switch(l){
     case OPTIMATHSAT:
@@ -27,8 +26,16 @@ void incipit(int l, bool bv){
     case Z3:
       if(!bv)
         std::cout<<"(set-logic QF_NIRA)"<<std::endl;
+      else
+        std::cout<<"(set-logic ALL)"<<std::endl;
+    break;
+    case CVC4:
+      std::cout<<"(set-logic ALL)"<<std::endl;
     break;
   }
+
+  // Setting directives
+  std::cout<<"(set-option :produce-models true)"<<std::endl;
   
 }
 
@@ -61,6 +68,12 @@ int main(int argc, char* argv[]){
       case 'l':{
         if(strcmp(optarg,"Z3") == 0){
           language = Z3;
+        }
+        if(strcmp(optarg,"CVC4") == 0){
+          language = CVC4;
+        }
+        if(strcmp(optarg,"BCLT") == 0){
+          language = BCLT;
         }
         break;
       }

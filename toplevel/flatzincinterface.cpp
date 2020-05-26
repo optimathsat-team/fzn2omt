@@ -161,7 +161,7 @@ void FlatZincInterface::main_loop(std::istream &source)
             s.reset(source);
         }
     }
-    std::cout<<"(check-sat)\n(get-objectives)\n";
+    optenv_->end_file();
 }
 
 //-----------------------------------------------------------------------------

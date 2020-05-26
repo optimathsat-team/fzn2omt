@@ -30,7 +30,7 @@ class Configuration {
     void copy_to(Configuration *dest);
     
     bool bv_;
-    int language_;
+    int language_config_;
 private:
 };
 

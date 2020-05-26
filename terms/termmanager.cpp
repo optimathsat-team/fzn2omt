@@ -23,6 +23,21 @@ TermManager::TermManager(bool bv_enc)
     next_variable_idx_ = 1;
     initialize_standard_signature();
     bv_enc_ = bv_enc;
+    language_ = 0;
+}
+
+TermManager::TermManager(bool bv_enc, int lang)
+{
+    universe_ = new TypeUniverse();
+    sig_ = new Signature(universe_);
+    next_term_id_ = 1;
+    smtlib_index_ = 10;
+    next_simple_type_id_ = 1;
+    next_variable_idx_ = 1;
+    initialize_standard_signature();
+    bv_enc_ = bv_enc;
+    language_ = lang;
+
 }
 
 
@@ -152,6 +167,8 @@ const Symbol *TermManager::make_unique_symbol(const std::string &prefix,
         buf.append(" ");
         buf.append(std::to_string(i));
     }
+    if(language_ == CVC4)
+        std::replace(buf.begin(), buf.begin()+1, '.', '_');
 
     assert(!sig_->get_symbol(buf));
 

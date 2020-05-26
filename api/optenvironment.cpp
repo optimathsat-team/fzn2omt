@@ -19,19 +19,31 @@ OptEnvironment::OptEnvironment(Configuration *config)
     : Environment(config, false)
 {
     bv_ = config->bv_;
-    language_ = config->language_;
+    language_ = config->language_config_;
+    objectives_ = false;
 }
 
 OptEnvironment::OptEnvironment(Configuration *config, TermManager *mgr)
     : Environment(config, mgr)
 {
     bv_ = config->bv_;
-    language_ = config->language_;
+    language_ = config->language_config_;
+    objectives_ = false;
 }
 
 OptEnvironment::~OptEnvironment()
 {
 
+}
+
+void OptEnvironment::end_file(){
+    if(language_ != BCLT){
+        std::cout<<"(check-sat)\n";
+        if(objectives_){
+            std::cout<<"(get-objectives)\n";
+        }
+    }
+    
 }
 
 void OptEnvironment::assert_formula(Term formula)
@@ -66,6 +78,22 @@ OptSearch *OptEnvironment::make_minimize(
         const std::string &id, bool bvsigned, bool strict)
 {
     assert(term);
+    if(language_ == CVC4){
+        std::cout<<"; objectives are not supported\n";
+        std::cout<<"; ";
+        std::cout<<"(minimize "<<term->get_symbol()->get_name()<<")"<<std::endl;
+        return NULL;
+    }
+    if(language_ == BCLT){
+        std::cout<<"(check-omt "<<term->get_symbol()->get_name();
+        if(lower)
+            std::cout<<" "<<lower->get_symbol()->get_name();
+        if(upper)
+            std::cout<<" "<<upper->get_symbol()->get_name();
+        std::cout<<")\n";
+        return NULL;
+    }
+    objectives_ = true;
     std::cout<<"(minimize "<<term->get_symbol()->get_name();
     if(bv_ && language_ == OPTIMATHSAT){
         std::cout<<" :signed";
@@ -80,6 +108,22 @@ OptSearch *OptEnvironment::make_maximize(
 {
     
     assert(term);
+    if(language_ == CVC4){
+        std::cout<<"; objectives are not supported\n";
+        std::cout<<"; ";
+        std::cout<<"(minimize "<<term->get_symbol()->get_name()<<")"<<std::endl;
+        return NULL;
+    }
+    if(language_ == BCLT){
+        std::cout<<"(check-omt (- "<<term->get_symbol()->get_name()<<")";
+        if(lower)
+            std::cout<<" "<<lower->get_symbol()->get_name();
+        if(upper)
+            std::cout<<" "<<upper->get_symbol()->get_name();
+        std::cout<<")\n";
+        return NULL;
+    }
+    objectives_ = true;
     std::cout<<"(maximize "<<term->get_symbol()->get_name();
     if(bv_ && language_ == OPTIMATHSAT){
         std::cout<<" :signed";
